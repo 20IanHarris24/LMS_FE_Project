@@ -1,37 +1,90 @@
-import { createContext, ReactElement, ReactNode, useEffect, useState } from "react";
-import { CustomError, IAuthContext, ITokens, loginReq, TOKENS } from "../utils";
-import { useLocalStorage } from "usehooks-ts";
+import {
+  createContext,
+  ReactElement,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import {
+  CustomError,
+  hasTokenExpired,
+  IAuthContext,
+  ITokenObjectExtensions,
+  ITokens,
+  IUserLoggedIn,
+  loginReq,
+} from "../utils";
+import { useLocalStorage } from "../hooks/useTokenStorage";
+import { jwtDecode } from "jwt-decode";
+import { ApiDataContext } from "./ApiDataProvider";
 
 interface IAuthProviderProps {
   children: ReactNode;
 }
-
 export const AuthContext = createContext<IAuthContext>({} as IAuthContext);
 
 export function AuthProvider({ children }: IAuthProviderProps): ReactElement {
+  const { tokens, setTokens, clearTokens } = useLocalStorage();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [tokens, setTokens, clearTokens] = useLocalStorage<ITokens | null>(TOKENS, null);
-  const values: IAuthContext = { isLoggedIn, login, logout };
 
-  async function login(username: string, password: string) {
-    try {
-      const tokens = await loginReq(username, password);
-      setTokens(tokens);
-    } catch (error) {
-      if (error instanceof CustomError) {
-        console.log(error);
-      }
-    }
-  }
 
-  function logout() {
-    clearTokens();
-  }
+  const [user, setUser ] = useState<IUserLoggedIn | null>(null);
 
   useEffect(() => {
-    if (tokens === null) setIsLoggedIn(false);
-    if (tokens) setIsLoggedIn(true);
+    if (tokens && tokens.accessToken && !hasTokenExpired(tokens.accessToken)) {
+      setIsLoggedIn(true);
+    } else {
+      setIsLoggedIn(false);
+    }
   }, [tokens]);
 
-  return <AuthContext.Provider value={values}>{children}</AuthContext.Provider>;
+  const login = async (username: string, password: string) => {
+    try {
+      const res = await loginReq(username, password);
+      if ("accessToken" in res) {
+        setTokens(res); // Save tokens to localStorage
+
+        // Decode the access token to get user info
+        const decoded = jwtDecode<ITokenObjectExtensions>(res.accessToken);
+        const id =
+          decoded[
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+          ]!;
+        const name =
+          decoded[
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+          ]!.toLowerCase();
+        const role =
+          decoded[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ]!.toLowerCase();
+
+        // Set the user state based on the decoded token
+        setUser({ id, name, role });
+
+        setIsLoggedIn(true); // Mark user as logged in
+        return res;
+      }
+      return res;
+    } catch (error) {
+      console.error("Login failed", error);
+      setIsLoggedIn(false);
+      return;
+    }
+  };
+
+  const logout = (): void => {
+    localStorage.clear();
+    setUser(null);
+    clearTokens();
+    setIsLoggedIn(false);
+    
+  };
+
+  return (
+    <AuthContext.Provider value={{ tokens, isLoggedIn, login, logout, user }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

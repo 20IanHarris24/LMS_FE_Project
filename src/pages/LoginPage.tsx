@@ -1,49 +1,74 @@
-import { FormEventHandler, ReactElement, useState } from "react";
+import { FormEventHandler, ReactElement, useEffect, useState } from "react";
 import { useAuthContext } from "../hooks";
 import { Navigate, useNavigate } from "react-router-dom";
+import { RenderLoginPage } from "./render/RenderLoginPage";
 
 export function LoginPage(): ReactElement {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const { isLoggedIn, login } = useAuthContext();
+  const [error, setError] = useState<string>("");
+  const { isLoggedIn, login, user } = useAuthContext();
   const navigate = useNavigate();
 
-  if (isLoggedIn) {
-    return <Navigate to="/" replace />;
-  }
+  console.log("Role", user?.role);
+  // Redirect logged-in users to their respective page based on their role
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      // Redirect based on user role
+      switch (user.role) {
+        case "teacher":
+          navigate("/teacherpage"); // Redirect teacher to teacher page
+          break;
+        case "student":
+          navigate("/mycoursepage"); // Redirect student to their course page
+          break;
+        default:
+          navigate("/unauthorized"); // For any other roles, redirect to unauthorized
+          break;
+      }
+    }
+  }, [isLoggedIn, user, navigate]);
 
   const handleOnSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
+    const errorMessage = await login(username, password); // Perform login action
+    if (errorMessage && "message" in errorMessage) {
+      setError(errorMessage.message);
+    }
 
-    await login(username, password);
-    navigate("/");
+    // After login, redirect the user based on their role
+    if (isLoggedIn && user) {
+      switch (user.role) {
+        case "teacher":
+          navigate("/teacherpage"); // Redirect teacher to teacher page
+          break;
+        case "student":
+          navigate("/mycoursepage"); // Redirect student to their course page
+          break;
+        default:
+          navigate("/unauthorized"); // For any other roles, redirect to unauthorized
+          break;
+      }
+    }
   };
 
+  // If user is already logged in, skip the login form and redirect to the appropriate page
+  if (isLoggedIn && user) {
+    return (
+      <Navigate
+        to={user.role === "teacher" ? "/teacherpage" : "/mycoursepage"}
+      />
+    );
+  }
+
   return (
-    <main id="login-page" className="g-container">
-      <h1 className="h1">University LMS Login</h1>
-      <form className="login-form" onSubmit={handleOnSubmit}>
-        <fieldset>
-          <label className="lbl" htmlFor="username">Email</label>
-          <input
-            id="username"
-            onChange={(e) => setUsername(e.target.value)}
-            type="text"
-            value={username}
-          />
-          <label className="lbl" htmlFor="password">Password</label>
-          <input
-            id="password"
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            value={password}
-          />
-          <button className="sign_in" type="submit">
-            Sign In
-          </button>
-          <a className="forgot" href="">Forgot password?</a>
-        </fieldset>
-      </form>
-    </main>
+    <RenderLoginPage
+      handleOnSubmit={handleOnSubmit}
+      password={password}
+      setPassword={setPassword}
+      setUsername={setUsername}
+      username={username}
+      error={error}
+    />
   );
 }
