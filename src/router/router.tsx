@@ -1,5 +1,5 @@
 import { createBrowserRouter, createRoutesFromElements, Route, Navigate } from "react-router-dom";
-import { RequireAuth } from "../components";
+// import { RequireAuth } from "../components";
 import { LoginPage, TeacherPage, MyCoursePage, UserListPage, Unauthorized, CourseDetails } from "../pages";
 import { AuthGuard } from "../components/AuthGuard";
 
