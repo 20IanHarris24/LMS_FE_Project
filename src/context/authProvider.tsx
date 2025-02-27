@@ -2,22 +2,22 @@ import {
   createContext,
   ReactElement,
   ReactNode,
-  useContext,
+  // useContext,
   useEffect,
   useState,
 } from "react";
 import {
-  CustomError,
+  // CustomError,
   hasTokenExpired,
   IAuthContext,
   ITokenObjectExtensions,
-  ITokens,
+  // ITokens,
   IUserLoggedIn,
   loginReq,
 } from "../utils";
 import { useLocalStorage } from "../hooks/useTokenStorage";
 import { jwtDecode } from "jwt-decode";
-import { ApiDataContext } from "./ApiDataProvider";
+// import { ApiDataContext } from "./ApiDataProvider";
 
 interface IAuthProviderProps {
   children: ReactNode;
@@ -81,6 +81,9 @@ export function AuthProvider({ children }: IAuthProviderProps): ReactElement {
     setIsLoggedIn(false);
     
   };
+
+
+
 
   return (
     <AuthContext.Provider value={{ tokens, isLoggedIn, login, logout, user }}>

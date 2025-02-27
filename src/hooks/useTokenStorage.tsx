@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState} from "react";
 
 // Define a constant key for localStorage
 const TOKEN_KEY = "auth_tokens";

@@ -36,7 +36,7 @@ export function payloadJsonFromToken(token: string): string {
 export function roleJsonFromToken(token: string): string {
   const decoded = jwtDecode<ITokenObjectExtensions>(token);
   const role = decoded[ "http://schemas.microsoft.com/ws/2008/06/identity/claims/role" ];
-  console.log("This is the user role extracted from the decoded access token payload: ", role);
+  // console.log("This is the user role extracted from the decoded access token payload: ", role);
 
   return role || "user role not found";
 }
